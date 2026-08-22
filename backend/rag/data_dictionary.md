@@ -300,4 +300,5 @@ LEFT JOIN employees m ON e.manager_id = m.employee_id;
 | `SELECT DATEDIFF(closed_date, posted_date) FROM job_openings` | `DATEDIFF` is not valid SQLite syntax. | `SELECT (julianday(closed_date) - julianday(posted_date)) FROM job_openings` |
 | `SELECT manager_name FROM employees` | `manager_name` column does not exist. | `SELECT m.first_name \|\| ' ' \|\| m.last_name AS manager_name FROM employees e JOIN employees m ON e.manager_id = m.employee_id` |
 | `SELECT SUM(salary) FROM employees` | Includes terminated employees if unfiltered. | `SELECT SUM(salary) FROM employees WHERE employment_status = 'Active'` |
-| `SELECT * FROM leave_records WHERE status = 'Active'` | Column is `approval_status`, not `status`. Allowed values are `'Approved'`, `'Pending'`, `'Rejected'`. | `SELECT * FROM leave_records WHERE approval_status = 'Approved'` |
+| `SELECT * FROM t ORDER BY c LIMIT 1 UNION ALL SELECT * FROM t ORDER BY c ASC LIMIT 1` | `ORDER BY` cannot come before `UNION ALL` in raw SQLite subqueries without subquery wrapping or CTEs. | `SELECT * FROM (SELECT * FROM t ORDER BY c DESC LIMIT 1) UNION ALL SELECT * FROM (SELECT * FROM t ORDER BY c ASC LIMIT 1)` |
+

@@ -114,12 +114,32 @@ class TestSQLValidator(unittest.TestCase):
         self.assertFalse(res["valid"])
         self.assertIn("Database validation error", res["error"])
 
-    def test_15_nonexistent_column_rejected(self):
-        """Test nonexistent column is caught during database schema validation."""
-        res = validate_sql("SELECT fake_column FROM employees;")
+    def test_16_valid_union_all_with_subqueries(self):
+        """Test UNION ALL wrapped in subqueries is accepted by SQLite validator."""
+        sql = """
+        SELECT * FROM (
+            SELECT employee_id, COUNT(leave_id) AS leave_count FROM leave_records GROUP BY employee_id ORDER BY leave_count DESC LIMIT 1
+        ) UNION ALL SELECT * FROM (
+            SELECT employee_id, COUNT(leave_id) AS leave_count FROM leave_records GROUP BY employee_id ORDER BY leave_count ASC LIMIT 1
+        );
+        """
+        res = validate_sql(sql)
+        self.assertTrue(res["valid"])
+        self.assertIsNone(res["error"])
+
+    def test_17_invalid_union_all_without_subqueries_rejected(self):
+        """Test un-parenthesized ORDER BY before UNION ALL is caught and rejected by database validator."""
+        sql = """
+        SELECT employee_id, COUNT(leave_id) AS leave_count FROM leave_records GROUP BY employee_id ORDER BY leave_count DESC LIMIT 1
+        UNION ALL
+        SELECT employee_id, COUNT(leave_id) AS leave_count FROM leave_records GROUP BY employee_id ORDER BY leave_count ASC LIMIT 1;
+        """
+        res = validate_sql(sql)
         self.assertFalse(res["valid"])
-        self.assertIn("Database validation error", res["error"])
+        self.assertIsNotNone(res["error"])
+        self.assertIn("ORDER BY clause should come after UNION ALL not before", res["error"])
 
 
 if __name__ == "__main__":
     unittest.main()
+

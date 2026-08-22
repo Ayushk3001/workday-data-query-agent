@@ -28,6 +28,7 @@ CRITICAL RULES:
 9. Do NOT wrap SQL in Markdown code fences (e.g. no ```sql or ```).
 10. Do NOT include any explanations, preamble, or commentary.
 11. Do NOT use PostgreSQL, MySQL, SQL Server, or Oracle syntax.
+12. When combining queries using UNION or UNION ALL where individual branches require ORDER BY and LIMIT, ALWAYS wrap each branch in a subquery `SELECT * FROM (SELECT ...) UNION ALL SELECT * FROM (SELECT ...)` or use WITH / CTE blocks. NEVER place ORDER BY/LIMIT directly before UNION or UNION ALL.
 """
 
 

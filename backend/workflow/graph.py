@@ -13,6 +13,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
+from backend.core.config import configure_langsmith
 from backend.workflow.state import QueryState
 from backend.workflow.nodes import (
     retrieve_context_node,
@@ -22,6 +23,15 @@ from backend.workflow.nodes import (
     generate_answer_node,
     error_handler_node
 )
+
+try:
+    from langsmith import traceable
+except ImportError:
+    def traceable(name=None, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+
 
 
 def route_after_validation(state: QueryState) -> str:
@@ -112,6 +122,7 @@ def get_workflow_mermaid() -> str:
 """
 
 
+@traceable(name="Workday HR Query")
 def run_query_workflow(question: str) -> Dict[str, Any]:
     """
     Public entry point for running the end-to-end LangGraph query workflow.
@@ -122,6 +133,8 @@ def run_query_workflow(question: str) -> Dict[str, Any]:
     Returns:
         Final state dictionary containing question, sql, results, answer, error, and current_step.
     """
+    configure_langsmith()
+
     initial_state: QueryState = {
         "question": question,
         "schema_context": [],
@@ -133,8 +146,9 @@ def run_query_workflow(question: str) -> Dict[str, Any]:
         "current_step": "started"
     }
 
-    final_state = workflow_app.invoke(initial_state)
+    final_state = workflow_app.invoke(initial_state, config={"run_name": "Workday HR Query"})
     return dict(final_state)
+
 
 
 if __name__ == "__main__":

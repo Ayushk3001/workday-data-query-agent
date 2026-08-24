@@ -26,23 +26,64 @@ class Settings:
     # LLM Settings (properties dynamically fetch from environment)
     @property
     def LLM_PROVIDER(self) -> str:
-        load_dotenv(os.path.join(PROJECT_ROOT, ".env"), override=True)
         return os.getenv("LLM_PROVIDER", "openai")
 
     @property
     def OPENAI_API_KEY(self) -> str:
-        load_dotenv(os.path.join(PROJECT_ROOT, ".env"), override=True)
         return os.getenv("OPENAI_API_KEY", "")
 
     @property
     def OPENAI_MODEL(self) -> str:
-        load_dotenv(os.path.join(PROJECT_ROOT, ".env"), override=True)
         return os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
     @property
     def OPENAI_BASE_URL(self) -> str:
-        load_dotenv(os.path.join(PROJECT_ROOT, ".env"), override=True)
         return os.getenv("OPENAI_BASE_URL", "")
+
+    # LangSmith Settings
+    @property
+    def LANGSMITH_TRACING(self) -> str:
+        return os.getenv("LANGSMITH_TRACING", "false")
+
+    @property
+    def LANGSMITH_API_KEY(self) -> str:
+        return os.getenv("LANGSMITH_API_KEY", "")
+
+    @property
+    def LANGSMITH_PROJECT(self) -> str:
+        return os.getenv("LANGSMITH_PROJECT", "workday-hr-ai-assistant")
+
+    @property
+    def LANGSMITH_ENDPOINT(self) -> str:
+        return os.getenv("LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
+
+
+    @property
+    def is_langsmith_enabled(self) -> bool:
+        tracing = str(self.LANGSMITH_TRACING).strip().lower() in ("true", "1", "yes")
+        api_key = bool(self.LANGSMITH_API_KEY and self.LANGSMITH_API_KEY.strip())
+        return tracing and api_key
 
 
 settings = Settings()
+
+
+def configure_langsmith():
+    """
+    Synchronizes LangSmith and LangChain environment variables based on current Settings.
+    Sets standard LANGCHAIN_TRACING_V2 and LANGSMITH_TRACING variables when tracing is enabled
+    with a valid API key, or unsets/disables them safely when disabled or missing API key.
+    """
+    if settings.is_langsmith_enabled:
+        os.environ["LANGSMITH_TRACING"] = "true"
+        os.environ["LANGCHAIN_TRACING_V2"] = "true"
+        os.environ["LANGSMITH_API_KEY"] = settings.LANGSMITH_API_KEY
+        os.environ["LANGCHAIN_API_KEY"] = settings.LANGSMITH_API_KEY
+        os.environ["LANGSMITH_PROJECT"] = settings.LANGSMITH_PROJECT
+        os.environ["LANGCHAIN_PROJECT"] = settings.LANGSMITH_PROJECT
+        os.environ["LANGSMITH_ENDPOINT"] = settings.LANGSMITH_ENDPOINT
+        os.environ["LANGCHAIN_ENDPOINT"] = settings.LANGSMITH_ENDPOINT
+    else:
+        os.environ["LANGSMITH_TRACING"] = "false"
+        os.environ["LANGCHAIN_TRACING_V2"] = "false"
+

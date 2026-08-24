@@ -19,8 +19,18 @@ from backend.sql.executor import execute_safe_query
 from backend.services.answer_generator import generate_answer, format_fallback_answer
 from backend.workflow.state import QueryState
 
+try:
+    from langsmith import traceable
+except ImportError:
+    def traceable(name=None, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
 
+
+@traceable(name="Retrieve Schema Context")
 def retrieve_context_node(state: QueryState) -> Dict[str, Any]:
+
     """
     Node 1: Retrieve schema and business rules context using RAG.
     Reuses existing state['schema_context'] if already present to avoid redundant RAG calls.
@@ -46,6 +56,7 @@ def retrieve_context_node(state: QueryState) -> Dict[str, Any]:
         }
 
 
+@traceable(name="Generate SQL")
 def generate_sql_node(state: QueryState) -> Dict[str, Any]:
     """
     Node 2: Generate SQLite SQL query using retrieved schema context.
@@ -79,6 +90,7 @@ def generate_sql_node(state: QueryState) -> Dict[str, Any]:
         }
 
 
+@traceable(name="Validate SQL")
 def validate_sql_node(state: QueryState) -> Dict[str, Any]:
     """
     Node 3: Validate generated SQL for read-only safety, keywords, and database schema compliance.
@@ -109,6 +121,7 @@ def validate_sql_node(state: QueryState) -> Dict[str, Any]:
     }
 
 
+@traceable(name="Execute Safe SQL")
 def execute_sql_node(state: QueryState) -> Dict[str, Any]:
     """
     Node 4: Execute validated read-only SQL query against SQLite database workday_hr.db.
@@ -139,6 +152,7 @@ def execute_sql_node(state: QueryState) -> Dict[str, Any]:
     }
 
 
+@traceable(name="Generate Answer")
 def generate_answer_node(state: QueryState) -> Dict[str, Any]:
     """
     Node 5: Synthesize human-readable answer from question and query execution result.
@@ -156,6 +170,7 @@ def generate_answer_node(state: QueryState) -> Dict[str, Any]:
     }
 
 
+@traceable(name="Error Handler")
 def error_handler_node(state: QueryState) -> Dict[str, Any]:
     """
     Terminal node handling workflow errors cleanly without exposing raw stack traces.

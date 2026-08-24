@@ -13,8 +13,18 @@ if PROJECT_ROOT not in sys.path:
 import openai
 from backend.core.config import settings
 
+try:
+    from langsmith import traceable
+except ImportError:
+    def traceable(name=None, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
 
+
+@traceable(name="LLM Completion", run_type="llm")
 def generate_completion(prompt: str, system_prompt: str = None) -> str:
+
     """
     Generate completion using configured LLM provider (OpenAI).
 
